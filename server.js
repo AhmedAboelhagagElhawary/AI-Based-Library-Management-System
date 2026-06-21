@@ -21,8 +21,8 @@ app.get('/', (req, res) => {
   res.send('Maktabti API is running...');
 });
 
-// 6. تشغيل السيرفر على البورت المحدد
-JavaScript
+// 6.  JavaScript تشغيل السيرفر على البورت المحدد
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
