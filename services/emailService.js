@@ -1,22 +1,23 @@
 const nodemailer = require('nodemailer');
 
-// دالة بتاخد إيميل الطالب، والـ OTP اللي تولد، وبتبعتهم
 const sendOTPEmail = async (academicEmail, otpCode) => {
   try {
-    // 1. إعداد السيرفر المسؤول عن الإرسال (Transporter)
-    // هنا بنعرفه الحساب اللي هيقوم بالإرسال وباسوورده (متخزنين في الـ .env للأمان)
+    // التعديل هنا: استخدمنا host و port صريحين بدل كلمة service
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // لو هتستخدم جيميل للتجربة، أو غيّرها حسب رغبتك لـ outlook
+      host: 'smtp.gmail.com',
+      port: 465,          // البورت الآمن الخاص بجوجل
+      secure: true,       // تفعيل التشفير
       auth: {
-        user: process.env.EMAIL_USER, // إيميلك اللي هيبعت
-        pass: process.env.EMAIL_PASS  // باسورد التطبيق (App Password) مش الباسورد العادي
-      }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      // السطر ده بيمنع تعليق السيرفر (بيخليها لو فشلت ترمي Error فوراً بدل ما تفضل تحمل)
+      connectionTimeout: 10000 
     });
 
-    // 2. تجهيز محتوى الرسالة وشكلها
     const mailOptions = {
       from: `"مكتبتي - ذكاء اصطناعي" <${process.env.EMAIL_USER}>`,
-      to: academicEmail, // إيميل الطالب المستلم
+      to: academicEmail,
       subject: 'تفعيل حسابك في تطبيق مكتبتي - رمز التحقق (OTP)',
       html: `
         <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 20px;">
@@ -30,11 +31,10 @@ const sendOTPEmail = async (academicEmail, otpCode) => {
       `
     };
 
-    // 3. الأمر الفعلي لإرسال الإيميل
     await transporter.sendMail(mailOptions);
     console.log(`OTP sent successfully to: ${academicEmail}`);
   } catch (error) {
-    console.error(`Error sending email: ${error.message}`);
+    console.error(`Nodemailer Error: ${error.message}`);
     throw new Error('فشل في إرسال بريد التحقق الإلكتروني');
   }
 };
