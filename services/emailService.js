@@ -2,17 +2,18 @@ const nodemailer = require('nodemailer');
 
 const sendOTPEmail = async (academicEmail, otpCode) => {
   try {
-    // التعديل هنا: استخدمنا host و port صريحين بدل كلمة service
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,          // البورت الآمن الخاص بجوجل
-      secure: true,       // تفعيل التشفير
+      port: 587, // البورت ده أثبت كفاءة أعلى مع السيرفرات السحابية
+      secure: false, // لازم تكون false مع بورت 587 (بيستخدم STARTTLS)
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
-      // السطر ده بيمنع تعليق السيرفر (بيخليها لو فشلت ترمي Error فوراً بدل ما تفضل تحمل)
-      connectionTimeout: 10000 
+      connectionTimeout: 10000,
+      tls: {
+        rejectUnauthorized: false // بنتجاهل رفض شهادات الأمان المؤقتة اللي بتحصل في Railway
+      }
     });
 
     const mailOptions = {

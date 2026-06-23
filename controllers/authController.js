@@ -2,18 +2,16 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const { sendResponse } = require('../utils/responseHandler');
 
-// استدعاء دوال الـ OTP والإيميل
 const generateOTP = require('../utils/generateOTP');
 const { sendOTPEmail } = require('../services/emailService');
 
 exports.registerUser = async (req, res) => {
   try {
-    // 1. استلام البيانات المسموح بيها بس من الواجهة
     const { 
       fullName, 
       academicEmail, 
-      personalEmail, // تمت الإضافة بناءً على واجهة الموبايل
-      phoneNumber,   // تمت الإضافة بناءً على واجهة الموبايل
+      personalEmail, 
+      phoneNumber,   
       password, 
       academicYear, 
       department 
@@ -27,13 +25,12 @@ exports.registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10); 
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // توليد الـ OTP وتحديد وقت الانتهاء
     const otpCode = generateOTP();
     const otpExpires = new Date();
     otpExpires.setMinutes(otpExpires.getMinutes() + 15);
 
-    // 2. حفظ المستخدم مع إجبار الدور كطالب لحماية النظام
-    const newUser = await User.create({
+    // تجهيز اليوزر في الذاكرة المؤقتة (Memory) بدون حفظ
+    const newUser = new User({
       fullName,
       academicEmail,
       personalEmail,
@@ -41,25 +38,31 @@ exports.registerUser = async (req, res) => {
       password: hashedPassword,
       academicYear,
       department,
-      role: 'student', // <-- أمان: تحديد الدور كطالب بشكل إجباري
+      role: 'student', 
       otpCode: otpCode,
       otpExpires: otpExpires
     });
 
-    // إرسال الإيميل
+    // نحاول نبعت الإيميل الأول
     await sendOTPEmail(academicEmail, otpCode);
 
-    // إخفاء البيانات الحساسة من الرد (Security Fix)
+    // لو الإيميل اتبعت بنجاح (مفيش Error)، نحفظ في قاعدة البيانات
+    await newUser.save();
+
+    // إخفاء البيانات الحساسة
     newUser.password = undefined; 
-    newUser.otpCode = undefined;    // إخفاء كود الـ OTP
-    newUser.otpExpires = undefined; // إخفاء وقت انتهاء الـ OTP
+    newUser.otpCode = undefined;    
+    newUser.otpExpires = undefined; 
 
     return sendResponse(res, 201, true, 'تم التسجيل بنجاح، يرجى مراجعة بريدك الإلكتروني لتفعيل الحساب باستخدام الـ OTP', newUser);
 
   } catch (error) {
+    // لو حصل خطأ في الإيميل، هنرد بالخطأ والداتابيز هتفضل نظيفة ومفيهاش اليوزر ده
     return sendResponse(res, 500, false, 'حدث خطأ أثناء التسجيل', error.message);
   }
 };
+
+// ... (دالة verifyOTP زي ما هي مفيهاش تغيير)
 
 exports.verifyOTP = async (req, res) => {
   try {
